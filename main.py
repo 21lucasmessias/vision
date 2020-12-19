@@ -1,5 +1,8 @@
 import cv2
 
+offset_x = 460
+offset_y = 500
+
 
 def car_center(x, y, w, h):
     car_center_x = int(w / 2)
@@ -11,38 +14,48 @@ def car_center(x, y, w, h):
 
 
 def process_frame(frame):
-    # roi
+    roi = frame[500:650, 460:660]
 
-    #roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
-    # threshhold binary, cars = white; road = black
+    ret, thresh = cv2.threshold(roi, 100, 255, cv2.THRESH_BINARY)
 
-    return roi
+    return thresh
 
 
-def draw_frame(frame, processed_frame):
-    # find external countours in processed frame
+def handle_car_counter(car_center_y, cars_count):
+    if(car_center_y > 600):
+        cars_count = cars_count + 1
 
-    # draw the retangles arroud car and a circle in center
+        print(cars_count)
 
-    cv2.rectangle(frame, (450, 350), (670, 620),
-                  color=(0, 255, 0), thickness=2)
 
-    cv2.ellipse(frame, car_center(0, 100, 100, 100),
-                (1, 1), 0, 0, 360, color=(0, 255, 0))
+def draw_find_car(frame, processed_frame, cars_count):
+    center_y = 0
 
-    # add points of elipses to a array
-
-    # draw a line to determine if a center of car pass throught
+    cars, h = cv2.findContours(
+        processed_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     cv2.line(frame, (450, 600), (670, 600), (255, 0, 0))
 
-    # check if the points of elipses passed throught the line
+    for(i, c) in enumerate(cars):
+        (x, y, w, h) = cv2.boundingRect(c)
 
-    return frame
+        if(w > 40 and h > 40):
+            cv2.rectangle(frame, (offset_x + x, offset_y + y),
+                          (offset_x + x+w, offset_y + y+h), (0, 255, 0), 2)
 
+            car_center_x, car_center_y = car_center(
+                offset_x + x, offset_y + y, w, h)
 
-def
+            cv2.circle(frame, (car_center_x, car_center_y),
+                       4, (255, 0, 255), -1)
+
+            handle_car_counter(car_center_y, cars_count)
+
+            break
+
+    cv2.imshow('frame', frame)
 
 
 def Start():
@@ -50,14 +63,14 @@ def Start():
 
     while video.isOpened():
         ret, frame = video.read()
-        controlkey = cv2.waitKey(5)
+        controlkey = cv2.waitKey(10)
+
+        cars_count = 0
 
         if ret:
             processed_frame = process_frame(frame)
 
-            drawned_frame = draw_frame(frame, processed_frame)
-
-            cv2.imshow('frame', drawned_frame)
+            draw_find_car(frame, processed_frame, cars_count)
         else:
             break
         if controlkey == ord('q'):
