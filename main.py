@@ -1,84 +1,85 @@
 import cv2
 
-offset_x = 460
-offset_y = 500
 
+class CountCars:
+    def __init__(self):
+        self.video = 'video.mp4'
+        self.exit_hotkey = 'q'
+        self.delay = 10
 
-def car_center(x, y, w, h):
-    car_center_x = int(w / 2)
-    car_center_y = int(h / 2)
-    car_center_x = x + car_center_x
-    car_center_y = y + car_center_y
+        self.offset_x = 460
+        self.offset_y = 500
+        self.cars_count = 0
 
-    return car_center_x, car_center_y
+    def Start(self):
+        video = cv2.VideoCapture(self.video)
 
+        while video.isOpened():
+            ret, frame = video.read()
+            controlkey = cv2.waitKey(self.delay)
 
-def process_frame(frame):
-    roi = frame[500:650, 460:660]
+            if ret:
+                processed_frame = self.ProcessFrame(frame)
 
-    roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                self.FindCarAndDraw(frame, processed_frame)
+            else:
+                break
+            if controlkey == ord(self.exit_hotkey):
+                break
 
-    ret, thresh = cv2.threshold(roi, 100, 255, cv2.THRESH_BINARY)
+        video.release()
+        cv2.destroyAllWindows()
 
-    return thresh
+    def CarCenter(self, x, y, w, h):
+        car_center_x = int(w / 2)
+        car_center_y = int(h / 2)
+        car_center_x = x + car_center_x
+        car_center_y = y + car_center_y
 
+        return car_center_x, car_center_y
 
-def handle_car_counter(car_center_y, cars_count):
-    if(car_center_y > 600):
-        cars_count = cars_count + 1
+    def ProcessFrame(self, frame):
+        roi = frame[500:650, 460:660]
 
-        print(cars_count)
+        roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
+        ret, thresh = cv2.threshold(roi, 100, 255, cv2.THRESH_BINARY)
 
-def draw_find_car(frame, processed_frame, cars_count):
-    center_y = 0
+        cv2.imshow('thresh', thresh)
 
-    cars, h = cv2.findContours(
-        processed_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        return thresh
 
-    cv2.line(frame, (450, 600), (670, 600), (255, 0, 0))
+    def HandleCarCounter(self, car_center_y):
+        if(car_center_y > 600):
+            self.cars_count = self.cars_count + 1
 
-    for(i, c) in enumerate(cars):
-        (x, y, w, h) = cv2.boundingRect(c)
+            print(self.cars_count)
 
-        if(w > 40 and h > 40):
-            cv2.rectangle(frame, (offset_x + x, offset_y + y),
-                          (offset_x + x+w, offset_y + y+h), (0, 255, 0), 2)
+    def FindCarAndDraw(self, frame, processed_frame):
+        cars, h = cv2.findContours(
+            processed_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            car_center_x, car_center_y = car_center(
-                offset_x + x, offset_y + y, w, h)
+        cv2.line(frame, (450, 600), (670, 600), (255, 0, 0))
 
-            cv2.circle(frame, (car_center_x, car_center_y),
-                       4, (255, 0, 255), -1)
+        for(i, c) in enumerate(cars):
+            (x, y, w, h) = cv2.boundingRect(c)
 
-            handle_car_counter(car_center_y, cars_count)
+            if(w > 40 and h > 40):
+                cv2.rectangle(frame, (self.offset_x + x, self.offset_y + y),
+                              (self.offset_x + x+w, self.offset_y + y+h), (0, 255, 0), 2)
 
-            break
+                car_center_x, car_center_y = self.CarCenter(
+                    self.offset_x + x, self.offset_y + y, w, h)
 
-    cv2.imshow('frame', frame)
+                cv2.circle(frame, (car_center_x, car_center_y),
+                           4, (255, 0, 255), -1)
 
+                self.HandleCarCounter(car_center_y)
 
-def Start():
-    video = cv2.VideoCapture('video.mp4')
+                break
 
-    while video.isOpened():
-        ret, frame = video.read()
-        controlkey = cv2.waitKey(10)
-
-        cars_count = 0
-
-        if ret:
-            processed_frame = process_frame(frame)
-
-            draw_find_car(frame, processed_frame, cars_count)
-        else:
-            break
-        if controlkey == ord('q'):
-            break
-
-    video.release()
-    cv2.destroyAllWindows()
+        cv2.imshow('frame', frame)
 
 
 if __name__ == '__main__':
-    Start()
+    CountCars().Start()
