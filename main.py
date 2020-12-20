@@ -9,7 +9,7 @@ class CountCars:
         self.delay = 10
 
         self.offset_x = 450
-        self.offset_y = 400
+        self.offset_y = 445
         self.cars_count = 0
 
         self.found = False
@@ -43,17 +43,32 @@ class CountCars:
 
         return car_center_x, car_center_y
 
+    def ProcessRoi(self, roi):
+        blank = np.zeros(roi.shape[:2], dtype='uint8')
+
+        points = np.array([[48, 0], [175, 0],
+                           [220, 300], [0, 300]], dtype=np.int32)
+
+        mask = cv2.fillPoly(
+            blank, [points], (255, 255, 255))
+
+        roi = cv2.bitwise_and(roi, roi, mask=mask)
+
+        return roi
+
     def ProcessFrame(self, frame):
-        roi = frame[400:750, 450:700]
+        roi = frame[445:700, 450:675]
 
         roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
         thresh = cv2.adaptiveThreshold(
             roi, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 13, 5)
 
-        roi = cv2.GaussianBlur(roi, (3, 3), 1)
+        roi = cv2.GaussianBlur(thresh, (5, 5), 1)
 
-        cv2.imshow('thresh', thresh)
+        roi = self.ProcessRoi(roi)
+
+        cv2.imshow('roi', roi)
 
         return thresh
 
@@ -80,7 +95,7 @@ class CountCars:
         for(i, c) in enumerate(cars):
             (x, y, w, h) = cv2.boundingRect(c)
 
-            if(w > 60 and h > 60):
+            if(w > 60 and h > 70):
                 cv2.rectangle(frame, (self.offset_x + x, self.offset_y + y),
                               (self.offset_x + x+w, self.offset_y + y+h), (0, 255, 0), 2)
 
