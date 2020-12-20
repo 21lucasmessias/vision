@@ -44,19 +44,14 @@ class CountCars:
         return car_center_x, car_center_y
 
     def ProcessFrame(self, frame):
-        roi = frame[400:800, 450:700]
+        roi = frame[400:750, 450:700]
 
         roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-#
-        #roi = cv2.GaussianBlur(roi, (3, 3), 1)
-#
-        #roi = cv2.dilate(roi, np.ones((3, 3)))
-#
-        #kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        #roi = cv2.morphologyEx(roi, cv2.MORPH_CLOSE, kernel)
-#
+
         thresh = cv2.adaptiveThreshold(
             roi, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 13, 5)
+
+        roi = cv2.GaussianBlur(roi, (3, 3), 1)
 
         cv2.imshow('thresh', thresh)
 
@@ -78,14 +73,14 @@ class CountCars:
 
     def FindCarAndDraw(self, frame, processed_frame):
         cars, h = cv2.findContours(
-            processed_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
+            processed_frame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         cv2.line(frame, (450, 600), (670, 600), (255, 0, 0))
 
         for(i, c) in enumerate(cars):
             (x, y, w, h) = cv2.boundingRect(c)
 
-            if(w > 100 and h > 100):
+            if(w > 60 and h > 60):
                 cv2.rectangle(frame, (self.offset_x + x, self.offset_y + y),
                               (self.offset_x + x+w, self.offset_y + y+h), (0, 255, 0), 2)
 
@@ -96,6 +91,8 @@ class CountCars:
                            4, (255, 0, 255), -1)
 
                 self.HandleCarCounter(car_center_y)
+
+                break
 
         cv2.imshow('frame', frame)
 
